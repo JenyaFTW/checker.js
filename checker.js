@@ -1,71 +1,30 @@
-const fs = require("fs")
-const FormData = require("form-data")
-const axios = require("axios")
+const fs = require('fs');
+const axios = require('axios');
+const FormData = require('form-data');
 
-const args = {
-	hostname: "httpbin.org",
-	port: 80,
-	path: "/post",
-	headers: {
-		"Content-Type": "multipart/form-data",
-	},
-}
-
-const filesSent = []
-
-const fileDir = "./"
+const endpoint = 'https://enyz9n0ebmy3n.x.pipedream.net/pdfs';
 
 const sendFile = file => {
-	if (filesSent.find(sentFile => sentFile === file)) return
+    const formData = new FormData();
+    formData.append(file, fs.ReadStream(file));
+    
+    axios.post(endpoint, formData, {'Content-Type': 'multipart/form-data'})
+        .then((_, err) => {
+	    if (err) console.error(err);
+            fs.unlinkSync(file);
+        })
+        .catch(err => console.error(err));
+};
 
-	filesSent.push(file)
-	console.log(`sending ${file}`)
+const mainLoop = () => {
+    fs.readdir('/', (err, files) => {
+        if (err) console.error('Error occured.');
+        const pdf = files.find(el => el.endsWith('.pdf'));
+        if (pdf) {
+            console.log(`Received and sending PDF: ${pdf}`);
+            sendFile(pdf);
+        }
+    });
+};
 
-	const formData = new FormData()
-
-	formData.append(file, fs.ReadStream(file))
-
-	axios
-		.post(`https://${args.hostname}${args.path}`, formData, args.headers)
-		.then(() => {
-			console.log("sent file")
-			fs.readFile(file, error => {
-				if (error) return
-				fs.unlinkSync(file)
-			})
-		})
-		.catch(error => console.error(error))
-}
-
-console.log("starting script...")
-
-fs.readdir(fileDir, error => {
-	if (error)
-		return console.error(
-			`Something went wrong while reading the dir, does it exist? \n \n ${error}`
-		)
-	main()
-})
-
-const main = () => {
-	console.log("script initialized!")
-	setInterval(() => {
-		fs.readdir(fileDir, (error, files) => {
-			if (error) {
-				console.error("an error occured \n \n ", e)
-			}
-
-			if (files && files.length >= 1) {
-				files.forEach(file => {
-					if (file.endsWith("pdf")) {
-						try {
-							sendFile(file)
-						} catch (err) {
-							console.error(`ERROR OCCURED \n \n ${err}`)
-						}
-					}
-				})
-			} else console.log("No Files Detected")
-		})
-	}, 1000)
-}
+setInterval(mainLoop, 1000);
