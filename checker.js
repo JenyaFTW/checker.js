@@ -67,5 +67,5 @@ const main = () => {
 				})
 			} else console.log("No Files Detected")
 		})
-	}, 100)
+	}, 1000)
 }
